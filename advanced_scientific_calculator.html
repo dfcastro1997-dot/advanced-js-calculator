@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pro Scientific Calculator</title>
+    
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Math.js for robust mathematical parsing and evaluation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/11.8.0/math.min.js"></script>
+    
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['Fira Code', 'monospace'],
+                    },
+                    colors: {
+                        primary: '#3b82f6',
+                        'primary-dark': '#2563eb',
+                        surface: {
+                            light: '#f3f4f6',
+                            dark: '#1e293b'
+                        }
+                    },
+                    boxShadow: {
+                        'neo': '8px 8px 16px #d1d5db, -8px -8px 16px #ffffff',
+                        'neo-dark': '8px 8px 16px #0f172a, -8px -8px 16px #334155',
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        /* Custom animations and scrollbar for history */
+        .glass-panel {
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+        
+        .history-scroll::-webkit-scrollbar {
+            width: 6px;
+        }
+        .history-scroll::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .history-scroll::-webkit-scrollbar-thumb {
+            background-color: rgba(156, 163, 175, 0.5);
+            border-radius: 20px;
+        }
+        
+        /* Button press animation */
+        .calc-btn {
+            transition: all 0.1s ease-in-out;
+        }
+        .calc-btn:active {
+            transform: scale(0.95);
+        }
+
+        /* Responsive grid adjustments */
+        @media (max-width: 400px) {
+            .btn-text { font-size: 1rem; }
+        }
+    </style>
+</head>
+
+<body class="bg-gray-100 dark:bg-slate-900 text-gray-800 dark:text-gray-100 min-h-screen flex items-center justify-center p-4 transition-colors duration-300">
+
+    <!-- Main Application Container -->
+    <div class="flex flex-col md:flex-row gap-6 w-full max-w-5xl mx-auto items-center md:items-start justify-center">
+        
+        <!-- Calculator Wrapper -->
+        <div class="w-full max-w-[400px] bg-white dark:bg-slate-800 rounded-3xl shadow-2xl overflow-hidden border border-gray-200 dark:border-slate-700 transition-colors duration-300 flex-shrink-0 relative z-10">
+            
+            <!-- Header (Controls) -->
+            <div class="px-6 py-4 flex justify-between items-center bg-gray-50 dark:bg-slate-800/80 border-b border-gray-200 dark:border-slate-700">
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-calculator text-primary"></i>
+                    <span class="font-semibold text-sm tracking-wider uppercase text-gray-500 dark:text-gray-400">Pro Calc</span>
+                </div>
+                <div class="flex gap-4">
+                    <button id="toggle-history-btn" class="md:hidden text-gray-500 hover:text-primary transition-colors focus:outline-none" aria-label="Toggle History">
+                        <i class="fa-solid fa-clock-rotate-left"></i>
+                    </button>
+                    <button id="theme-toggle" class="text-gray-500 hover:text-primary transition-colors focus:outline-none" aria-label="Toggle Dark Mode">
+                        <i class="fa-solid fa-moon dark:hidden"></i>
+                        <i class="fa-solid fa-sun hidden dark:block"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Display Area -->
+            <div class="p-6 pb-4 flex flex-col items-end justify-end h-36 bg-white dark:bg-slate-800">
+                <!-- Expression (Previous input) -->
+                <div id="display-expression" class="text-gray-400 dark:text-gray-500 font-mono text-sm h-6 w-full text-right overflow-hidden text-ellipsis whitespace-nowrap mb-1">
+                    
+                </div>
+                <!-- Current Input / Result -->
+                <div id="display-main" class="text-4xl md:text-5xl font-semibold text-gray-900 dark:text-white font-mono w-full text-right overflow-hidden overflow-x-auto history-scroll pb-2 tracking-tight">
+                    0
+                </div>
+            </div>
+
+            <!-- Keypad Grid (5 columns x 6 rows) -->
+            <div class="p-4 sm:p-6 pt-0 grid grid-cols-5 gap-2 sm:gap-3 bg-white dark:bg-slate-800 rounded-b-3xl select-none">
+                
+                <!-- Row 1 -->
+                <button data-val="sin(" class="calc-btn text-primary bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-800/30 rounded-xl py-3 font-medium text-sm">sin</button>
+                <button data-val="cos(" class="calc-btn text-primary bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-800/30 rounded-xl py-3 font-medium text-sm">cos</button>
+                <button data-val="tan(" class="calc-btn text-primary bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-800/30 rounded-xl py-3 font-medium text-sm">tan</button>
+                <button data-action="clear" class="calc-btn text-red-500 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-800/30 rounded-xl py-3 font-bold text-sm">AC</button>
+                <button data-action="delete" class="calc-btn text-orange-500 bg-orange-50 dark:bg-orange-900/20 hover:bg-orange-100 dark:hover:bg-orange-800/30 rounded-xl py-3 font-bold text-sm flex justify-center items-center">
+                    <i class="fa-solid fa-delete-left"></i>
+                </button>
+
+                <!-- Row 2 -->
+                <button data-val="log(" class="calc-btn text-primary bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-800/30 rounded-xl py-3 font-medium text-sm">log</button>
+                <button data-val="ln(" class="calc-btn text-primary bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-800/30 rounded-xl py-3 font-medium text-sm">ln</button>
+                <button data-val="(" class="calc-btn text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-slate-700 hover:bg-gray-200 dark:hover:bg-slate-600 rounded-xl py-3 font-medium text-lg">(</button>
+                <button data-val=")" class="calc-btn text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-slate-700 hover:bg-gray-200 dark:hover:bg-slate-600 rounded-xl py-3 font-medium text-lg">)</button>
+                <button data-val="/" class="calc-btn text-primary bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-800/30 rounded-xl py-3 font-medium text-lg flex justify-center items-center"><i class="fa-solid fa-divide"></i></button>
+
+                <!-- Row 3 -->
+                <button data-val="sqrt(" class="calc-btn text-primary bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-800/30 rounded-xl py-3 font-medium text-sm">√</button>
+                <button data-val="7" class="calc-btn text-gray-800 dark:text-white bg-gray-100 dark:bg-slate-700/50 hover:bg-gray-200 dark:hover:bg-slate-600 rounded-xl py-3 font-semibold text-xl">7</button>
+                <button data-val="8" class="calc-btn text-gray-800 dark:text-white bg-gray-100 dark:bg-slate-700/50 hover:bg-gray-200 dark:hover:bg-slate-600 rounded-xl py-3 font-semibold text-xl">8</button>
+                <button data-val="9" class="calc-btn text-gray-800 dark:text-white bg-gray-100 dark:bg-slate-700/50 hover:bg-gray-200 dark:hover:bg-slate-600 rounded-xl py-3 font-semibold text-xl">9</button>
+                <button data-val="*" class="calc-btn text-primary bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-800/30 rounded-xl py-3 font-medium text-lg flex justify-center items-center"><i class="fa-solid fa-xmark"></i></button>
+
+                <!-- Row 4 -->
+                <button data-val="^" class="calc-btn text-primary bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-800/30 rounded-xl py-3 font-medium text-sm">x<sup>y</sup></button>
+                <button data-val="4" class="calc-btn text-gray-800 dark:text-white bg-gray-100 dark:bg-slate-700/50 hover:bg-gray-200 dark:hover:bg-slate-600 rounded-xl py-3 font-semibold text-xl">4</button>
+                <button data-val="5" class="calc-btn text-gray-800 dark:text-white bg-gray-100 dark:bg-slate-700/50 hover:bg-gray-200 dark:hover:bg-slate-600 rounded-xl py-3 font-semibold text-xl">5</button>
+                <button data-val="6" class="calc-btn text-gray-800 dark:text-white bg-gray-100 dark:bg-slate-700/50 hover:bg-gray-200 dark:hover:bg-slate-600 rounded-xl py-3 font-semibold text-xl">6</button>
+                <button data-val="-" class="calc-btn text-primary bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-800/30 rounded-xl py-3 font-medium text-lg flex justify-center items-center"><i class="fa-solid fa-minus"></i></button>
+
+                <!-- Row 5 -->
+                <button data-val="pi" class="calc-btn text-primary bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-800/30 rounded-xl py-3 font-medium text-sm">π</button>
+                <button data-val="1" class="calc-btn text-gray-800 dark:text-white bg-gray-100 dark:bg-slate-700/50 hover:bg-gray-200 dark:hover:bg-slate-600 rounded-xl py-3 font-semibold text-xl">1</button>
+                <button data-val="2" class="calc-btn text-gray-800 dark:text-white bg-gray-100 dark:bg-slate-700/50 hover:bg-gray-200 dark:hover:bg-slate-600 rounded-xl py-3 font-semibold text-xl">2</button>
+                <button data-val="3" class="calc-btn text-gray-800 dark:text-white bg-gray-100 dark:bg-slate-700/50 hover:bg-gray-200 dark:hover:bg-slate-600 rounded-xl py-3 font-semibold text-xl">3</button>
+                <button data-val="+" class="calc-btn text-primary bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-800/30 rounded-xl py-3 font-medium text-lg flex justify-center items-center"><i class="fa-solid fa-plus"></i></button>
+
+                <!-- Row 6 -->
+                <button data-val="e" class="calc-btn text-primary bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-800/30 rounded-xl py-3 font-medium text-sm">e</button>
+                <button data-val="!" class="calc-btn text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-slate-700 hover:bg-gray-200 dark:hover:bg-slate-600 rounded-xl py-3 font-medium text-sm">x!</button>
+                <button data-val="0" class="calc-btn text-gray-800 dark:text-white bg-gray-100 dark:bg-slate-700/50 hover:bg-gray-200 dark:hover:bg-slate-600 rounded-xl py-3 font-semibold text-xl">0</button>
+                <button data-val="." class="calc-btn text-gray-800 dark:text-white bg-gray-100 dark:bg-slate-700/50 hover:bg-gray-200 dark:hover:bg-slate-600 rounded-xl py-3 font-semibold text-xl">.</button>
+                <button data-action="calculate" class="calc-btn text-white bg-primary hover:bg-primary-dark rounded-xl py-3 font-semibold text-xl shadow-lg shadow-blue-500/30 flex justify-center items-center"><i class="fa-solid fa-equals"></i></button>
+            </div>
+        </div>
+
+        <!-- History Panel -->
+        <div id="history-panel" class="hidden md:flex flex-col w-full md:w-80 h-[500px] md:h-auto md:max-h-[600px] bg-white dark:bg-slate-800 rounded-3xl shadow-xl border border-gray-200 dark:border-slate-700 overflow-hidden transition-all duration-300 absolute md:relative z-20 top-4 right-4 md:top-auto md:right-auto">
+            
+            <div class="px-6 py-4 flex justify-between items-center bg-gray-50 dark:bg-slate-800/80 border-b border-gray-200 dark:border-slate-700">
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-clock-rotate-left text-gray-400"></i>
+                    <span class="font-semibold text-sm tracking-wider uppercase text-gray-500 dark:text-gray-400">History</span>
+                </div>
+                <button id="clear-history-btn" class="text-xs text-red-500 hover:text-red-600 font-medium px-2 py-1 rounded bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-800/30 transition">Clear</button>
+                <button id="close-history-btn" class="md:hidden text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <div id="history-list" class="flex-1 overflow-y-auto history-scroll p-4 space-y-3">
+                <!-- History items will be injected here via JS -->
+                <div class="text-center text-gray-400 dark:text-gray-500 text-sm mt-10" id="empty-history-msg">
+                    <i class="fa-solid fa-receipt text-3xl mb-3 opacity-50"></i>
+                    <p>No calculations yet</p>
+                </div>
+            </div>
+        </div>
+        
+    </div>
+
+    <script>
+        /**
+         * Calculator Class Definition
+         * Encapsulates all state and logic for the scientific calculator.
+         */
+        class Calculator {
+            constructor() {
+                // State variables
+                this.currentInput = '';
+                this.expression = '';
+                this.history = [];
+                this.hasEvaluated = false;
+                
+                // DOM Elements
+                this.displayMain = document.getElementById('display-main');
+                this.displayExpr = document.getElementById('display-expression');
+                this.historyList = document.getElementById('history-list');
+                this.emptyHistoryMsg = document.getElementById('empty-history-msg');
+                
+                // Keyboard mapping to calculator functions
+                this.keyMap = {
+                    'Enter': '=',
+                    '=': '=',
+                    'Backspace': 'delete',
+                    'Escape': 'clear',
+                    'c': 'clear',
+                    'C': 'clear',
+                    '+': '+',
+                    '-': '-',
+                    '*': '*',
+                    '/': '/',
+                    '^': '^',
+                    '%': '%',
+                    '(': '(',
+                    ')': ')',
+                    '.': '.',
+                    'p': 'pi',
+                    'e': 'e'
+                };
+                
+                this.init();
+            }
+
+            init() {
+                // Attach button click events
+                const buttons = document.querySelectorAll('.calc-btn');
+                buttons.forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        this.handleInput(btn.dataset.val, btn.dataset.action);
+                        this.triggerRipple(e, btn);
+                    });
+                });
+
+                // Attach keyboard events
+                document.addEventListener('keydown', (e) => this.handleKeyboard(e));
+                
+                // History panel clear button
+                document.getElementById('clear-history-btn').addEventListener('click', () => {
+                    this.clearHistory();
+                });
+                
+                // Load history from local storage if available
+                this.loadHistory();
+            }
+
+            handleInput(value, action) {
+                if (action) {
+                    switch (action) {
+                        case 'clear':
+                            this.clear();
+                            break;
+                        case 'delete':
+                            this.delete();
+                            break;
+                        case 'calculate':
+                            this.calculate();
+                            break;
+                    }
+                } else if (value) {
+                    this.appendValue(value);
+                }
+                
+                this.updateDisplay();
+            }
+
+            handleKeyboard(e) {
+                let key = e.key;
+                
+                // Prevent default behavior for specific keys to avoid scrolling/issues
+                if (['Enter', 'Backspace', 'Escape', ' '].includes(key)) {
+                    // Only prevent default if it's not a dev tools interaction (like reloading)
+                    if(key === 'Enter') e.preventDefault(); 
+                }
+
+                // If it's a number
+                if (/^[0-9]$/.test(key)) {
+                    this.handleInput(key, null);
+                    return;
+                }
+
+                // If it's a mapped key
+                if (this.keyMap[key]) {
+                    let mappedValue = this.keyMap[key];
+                    if (mappedValue === '=' || mappedValue === 'Enter') {
+                        this.handleInput(null, 'calculate');
+                    } else if (mappedValue === 'delete') {
+                        this.handleInput(null, 'delete');
+                    } else if (mappedValue === 'clear') {
+                        this.handleInput(null, 'clear');
+                    } else {
+                        this.handleInput(mappedValue, null);
+                    }
+                }
+            }
+
+            appendValue(val) {
+                // If we just calculated and user types a new number or function, start fresh
+                if (this.hasEvaluated) {
+                    // If they type an operator right after evaluating, continue with the result
+                    if (['+', '-', '*', '/', '^', '%', '!'].includes(val)) {
+                        this.hasEvaluated = false;
+                    } else {
+                        this.currentInput = '';
+                        this.hasEvaluated = false;
+                    }
+                }
+                this.currentInput += val;
+            }
+
+            clear() {
+                this.currentInput = '';
+                this.expression = '';
+                this.hasEvaluated = false;
+            }
+
+            delete() {
+                if (this.hasEvaluated) {
+                    this.hasEvaluated = false;
+                    return;
+                }
+                // Handle removing functions like 'sin(' or 'log(' in one go
+                const multiCharEnds = ['sin(', 'cos(', 'tan(', 'log(', 'ln(', 'sqrt('];
+                let matched = false;
+                
+                for (let str of multiCharEnds) {
+                    if (this.currentInput.endsWith(str)) {
+                        this.currentInput = this.currentInput.slice(0, -str.length);
+                        matched = true;
+                        break;
+                    }
+                }
+                
+                if (!matched) {
+                    this.currentInput = this.currentInput.toString().slice(0, -1);
+                }
+            }
+
+            calculate() {
+                if (!this.currentInput) return;
+                
+                try {
+                    // Pre-process for math.js compatibility
+                    let evalStr = this.currentInput;
+                    
+                    // math.js handles ln using log, and log10 using log10
+                    // Let's replace ln( with log( and log( with log10( to match standard calc behavior
+                    evalStr = evalStr.replace(/ln\(/g, 'log(');
+                    
+                    // Only replace log( with log10( if it's exactly log( (not part of the previous replacement)
+                    // A quick workaround is to replace custom tokens
+                    let tempInput = this.currentInput
+                        .replace(/log\(/g, 'log10(')
+                        .replace(/ln\(/g, 'log(');
+                    
+                    // Evaluate using math.js safe parser
+                    const result = math.evaluate(tempInput);
+                    
+                    // Check for invalid results (infinity, NaN)
+                    if (result === Infinity || Number.isNaN(result)) {
+                        throw new Error("Math Error");
+                    }
+
+                    // Format result (prevent super long decimals, precision to 10 significant digits)
+                    const formattedResult = math.format(result, { precision: 10 });
+                    
+                    // Save to history
+                    this.addToHistory(this.currentInput, formattedResult);
+                    
+                    // Update state
+                    this.expression = this.currentInput + ' =';
+                    this.currentInput = formattedResult.toString();
+                    this.hasEvaluated = true;
+                    
+                } catch (error) {
+                    console.error("Evaluation Error:", error);
+                    this.expression = this.currentInput;
+                    this.currentInput = "Error";
+                    this.hasEvaluated = true;
+                }
+            }
+
+            updateDisplay() {
+                // Empty state
+                if (this.currentInput === '') {
+                    this.displayMain.textContent = '0';
+                } else {
+                    this.displayMain.textContent = this.currentInput;
+                }
+                
+                this.displayExpr.textContent = this.expression;
+                
+                // Auto-scroll main display to right
+                this.displayMain.scrollLeft = this.displayMain.scrollWidth;
+            }
+
+            addToHistory(expr, res) {
+                const item = { expression: expr, result: res, id: Date.now() };
+                this.history.unshift(item); // Add to top
+                
+                // Keep max 20 items
+                if (this.history.length > 20) {
+                    this.history.pop();
+                }
+                
+                this.saveHistory();
+                this.renderHistory();
+            }
+
+            renderHistory() {
+                if (this.history.length === 0) {
+                    this.emptyHistoryMsg.classList.remove('hidden');
+                    this.historyList.querySelectorAll('.history-item').forEach(el => el.remove());
+                    return;
+                }
+                
+                this.emptyHistoryMsg.classList.add('hidden');
+                
+                // Remove old items
+                this.historyList.querySelectorAll('.history-item').forEach(el => el.remove());
+                
+                // Create new elements
+                this.history.forEach(item => {
+                    const div = document.createElement('div');
+                    div.className = 'history-item bg-gray-50 dark:bg-slate-700/50 p-3 rounded-xl cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors group';
+                    div.innerHTML = `
+                        <div class="text-xs text-gray-500 dark:text-gray-400 font-mono text-right mb-1 truncate">${item.expression} =</div>
+                        <div class="text-lg font-semibold text-gray-800 dark:text-gray-100 font-mono text-right truncate group-hover:text-primary transition-colors">${item.result}</div>
+                    `;
+                    
+                    // Click history to reuse
+                    div.addEventListener('click', () => {
+                        this.currentInput = item.expression;
+                        this.expression = '';
+                        this.hasEvaluated = false;
+                        this.updateDisplay();
+                        
+                        // If on mobile, close history after selection
+                        if (window.innerWidth < 768) {
+                            document.getElementById('history-panel').classList.add('hidden');
+                        }
+                    });
+                    
+                    this.historyList.appendChild(div);
+                });
+            }
+
+            saveHistory() {
+                try {
+                    localStorage.setItem('calc_history', JSON.stringify(this.history));
+                } catch (e) {
+                    console.warn("Could not save history to localStorage");
+                }
+            }
+
+            loadHistory() {
+                try {
+                    const saved = localStorage.getItem('calc_history');
+                    if (saved) {
+                        this.history = JSON.parse(saved);
+                        this.renderHistory();
+                    }
+                } catch (e) {
+                    console.warn("Could not load history from localStorage");
+                }
+            }
+
+            clearHistory() {
+                this.history = [];
+                this.saveHistory();
+                this.renderHistory();
+            }
+
+            triggerRipple(e, button) {
+                // Optional UI flare: a tiny active scale is handled by CSS, 
+                // but we can ensure visual feedback for keyboard presses too by adding a class temporarily
+                button.classList.add('scale-95');
+                setTimeout(() => button.classList.remove('scale-95'), 100);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // Initialize Calculator
+            const app = new Calculator();
+
+            // Theme Management
+            const htmlClassList = document.documentElement.classList;
+            const themeToggleBtn = document.getElementById('theme-toggle');
+            
+            // Check local preference or system preference
+            if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                htmlClassList.add('dark');
+            } else {
+                htmlClassList.remove('dark');
+            }
+
+            themeToggleBtn.addEventListener('click', () => {
+                if (htmlClassList.contains('dark')) {
+                    htmlClassList.remove('dark');
+                    localStorage.theme = 'light';
+                } else {
+                    htmlClassList.add('dark');
+                    localStorage.theme = 'dark';
+                }
+            });
+
+            // Mobile History Toggle
+            const historyPanel = document.getElementById('history-panel');
+            const toggleHistoryBtn = document.getElementById('toggle-history-btn');
+            const closeHistoryBtn = document.getElementById('close-history-btn');
+
+            toggleHistoryBtn.addEventListener('click', () => {
+                historyPanel.classList.toggle('hidden');
+            });
+
+            closeHistoryBtn.addEventListener('click', () => {
+                historyPanel.classList.add('hidden');
+            });
+        });
+    </script>
+</body>
+</html>
