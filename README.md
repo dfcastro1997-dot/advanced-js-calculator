@@ -30,13 +30,10 @@ A continuación, se muestra la interfaz de usuario en sus diferentes configuraci
 [Para agregar tus imágenes: Toma capturas de tu pantalla, guárdalas en una carpeta llamada "assets" o "images" en tu repositorio, y reemplaza las rutas de abajo]
 
 **Vista de Escritorio (Modo Oscuro):**
-![Vista de Escritorio - Modo Oscuro](ruta/a/tu/imagen-escritorio-oscuro.png)
+![Vista de Escritorio - Modo Oscuro](https://i.ibb.co/S8MrzV4/image.png)
 
 **Vista de Escritorio (Modo Claro):**
-![Vista de Escritorio - Modo Claro](ruta/a/tu/imagen-escritorio-claro.png)
-
-**Vista Móvil:**
-![Vista Móvil](ruta/a/tu/imagen-movil.png)
+![Vista de Escritorio - Modo Claro](https://i.ibb.co/0pjWN5xq/image.png)
 
 ## Características Principales
 
